@@ -9,8 +9,8 @@ def get_species(observation):
     species_in_observation = []
 
     for species in observation.children:
-        specie = species.find_all("span", class_="sci_name")[0].text
-        species_in_observation.append(specie.lstrip("(").rstrip(")"))
+        specie = species.find_all("span", class_="sci_name")[0].parent.text
+        species_in_observation.append(specie)
 
     return species_in_observation
 
