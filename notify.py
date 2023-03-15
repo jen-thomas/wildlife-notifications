@@ -5,6 +5,7 @@ import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 
+
 def get_species(observation):
     species_in_observation = []
 
@@ -13,6 +14,7 @@ def get_species(observation):
         species_in_observation.append(specie)
 
     return species_in_observation
+
 
 def get_sightings_page(page: int) -> list[dict]:
     url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=2&mp_item_per_page=20&mp_current_page={page}"
@@ -32,6 +34,7 @@ def get_sightings_page(page: int) -> list[dict]:
 
     return result
 
+
 def save_sighting(sighting: dict):
     data = Path.cwd() / "data"
     data.mkdir(exist_ok=True)
@@ -40,6 +43,7 @@ def save_sighting(sighting: dict):
 
     with file.open("w") as fp:
         json.dump(sighting, fp)
+
 
 def load_sighting() -> dict:
     file = Path.cwd() / "data/last_sent.json"
@@ -50,6 +54,7 @@ def load_sighting() -> dict:
     with file.open("r") as fp:
         return json.load(fp)
 
+
 def format_sighting(sighting: dict) -> str:
     formatted = ""
     formatted += f"Location: {sighting['location']}\n"
@@ -59,8 +64,10 @@ def format_sighting(sighting: dict) -> str:
 
     return formatted
 
+
 def send_sighting(sighting: dict) -> None:
     print(format_sighting(sighting))
+
 
 def print_new_sightings():
     last_notified = load_sighting()
@@ -80,6 +87,7 @@ def print_new_sightings():
                 return
             else:
                 send_sighting(sighting)
+
 
 if __name__ == "__main__":
     print_new_sightings()
