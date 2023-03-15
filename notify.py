@@ -1,17 +1,46 @@
 #!/usr/bin/env python3
 import json
 import re
+from typing import Optional
+
 import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 
+def translate_to_english(scientific_name: str) -> Optional[str]:
+    translations_file = Path.cwd() / "data/translations.html"
+
+    soup = BeautifulSoup(translations_file.read_bytes(), "html.parser")
+
+    table = soup.find_all("table", id="species")[0]
+
+    latin_column = 0
+    english_column = 1
+
+    first = True
+    for row in table.find_all("tr"):
+        if first:
+            first = False
+            continue
+
+        tds = row.find_all("td")
+        if tds[latin_column].text == scientific_name:
+            return tds[english_column].text
+
+    return None
 
 def get_species(observation):
     species_in_observation = []
 
     for species in observation.children:
         specie = species.find_all("span", class_="sci_name")[0].parent.text
-        species_in_observation.append(specie)
+        scientific_name = get_scientific_name(specie)
+        english_name = translate_to_english(scientific_name)
+
+        if english_name is not None:
+            species_in_observation.append(specie + " " + english_name)
+        else:
+            species_in_observation.append(specie)
 
     return species_in_observation
 
@@ -24,6 +53,14 @@ def get_comarca_abbr(location: str) -> str:
     comarca_abbr = re.findall("[A-Z]{3}", location)[0]
 
     return comarca_abbr
+
+def get_scientific_name(sighting: str) -> Optional[str]:
+    scientific_name = re.search(r"\((.*)\)", sighting)
+
+    if scientific_name:
+        return scientific_name.group(1)
+    else:
+        return None
 
 
 def get_raw_sighting():
