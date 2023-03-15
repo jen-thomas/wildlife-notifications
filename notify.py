@@ -26,24 +26,32 @@ def get_comarca_abbr(location: str) -> str:
     return comarca_abbr
 
 
-def get_sightings_page(page: int) -> list[dict]:
-    url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=2&mp_item_per_page=20&mp_current_page={page}"
-    page = requests.get(url)
+def get_raw_sighting():
+    for page in range(0, 20):
+        url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=2&mp_item_per_page=20&mp_current_page={page}"
 
-    soup = BeautifulSoup(page.content, "html.parser")
+        page = requests.get(url)
 
-    list_locations = soup.find_all("div", class_="listSubmenu")
+        soup = BeautifulSoup(page.content, "html.parser")
 
-    list_species = soup.find_all("div", class_="listObservation")
+        list_locations = soup.find_all("div", class_="listSubmenu")
 
-    result = []
+        list_species = soup.find_all("div", class_="listObservation")
 
-    for location, species in zip(list_locations, list_species):
-        species_list = get_species(species)
-        result.append({"location": location.text, "species": species_list})
+        for location, species in zip(list_locations, list_species):
+            species_list = get_species(species)
+            yield {"location": location.text, "species": species_list}
 
-    return result
+def get_next_sighting() -> dict:
+    raw_sighting_generator = get_raw_sighting()
+    previous = next(raw_sighting_generator)
 
+    for raw_sighting in raw_sighting_generator:
+        if previous["location"] == raw_sighting["location"]:
+            previous["species"] += raw_sighting["species"]
+        else:
+            yield previous
+            previous = raw_sighting
 
 def save_sighting(sighting: dict):
     data = Path.cwd() / "data"
@@ -52,7 +60,7 @@ def save_sighting(sighting: dict):
     file = data / "last_sent.json"
 
     with file.open("w") as fp:
-        json.dump(sighting, fp)
+        json.dump(sighting, fp, indent=2)
 
 
 def load_sighting() -> dict:
@@ -83,22 +91,21 @@ def send_sighting(sighting: dict) -> None:
 def print_new_sightings():
     last_notified = load_sighting()
 
-    first_sighting = None
+    for index, sighting in enumerate(get_next_sighting()):
+        if sighting == last_notified:
+            # This sighting was already sent - finish
+            return
 
-    for page in range(1, 6):
-        sightings = get_sightings_page(page)
+        if index > 20:
+            # Do not send more than 20...
+            return
 
-        if first_sighting is None:
-            first_sighting = sightings[0]
-            save_sighting(sightings[0])
+        if index == 0:
+            # Current one is going to be sent, save it to avoid
+            # resending it later
+            save_sighting(sighting)
 
-        for sighting in sightings:
-            if sighting == last_notified:
-                # Finished! This had already been sent
-                return
-            else:
-                send_sighting(sighting)
-
+        send_sighting(sighting)
 
 if __name__ == "__main__":
     print_new_sightings()
