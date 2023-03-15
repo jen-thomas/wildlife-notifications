@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import json
-
+import re
 import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -14,6 +14,16 @@ def get_species(observation):
         species_in_observation.append(specie)
 
     return species_in_observation
+
+
+def get_comarca_abbr(location: str) -> str:
+    """Get the comarca from the location name.
+
+    Return the comarca abbreviation."""
+
+    comarca_abbr = re.findall("[A-Z]{3}", location)[0]
+
+    return comarca_abbr
 
 
 def get_sightings_page(page: int) -> list[dict]:
@@ -58,6 +68,7 @@ def load_sighting() -> dict:
 def format_sighting(sighting: dict) -> str:
     formatted = ""
     formatted += f"Location: {sighting['location']}\n"
+    formatted += f"Comarca: {get_comarca_abbr(sighting['location'])}\n"
 
     for species in sighting["species"]:
         formatted += f"  {species}\n"
