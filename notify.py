@@ -83,12 +83,12 @@ def get_next_sighting() -> dict:
     raw_sighting_generator = get_raw_sighting()
     previous = next(raw_sighting_generator)
 
-    for raw_sighting in raw_sighting_generator:
-        if previous["location"] == raw_sighting["location"]:
-            previous["species"] += raw_sighting["species"]
+    for current_sighting in raw_sighting_generator:
+        if previous["location"] == current_sighting["location"]:
+            previous["species"] += current_sighting["species"]
         else:
             yield previous
-            previous = raw_sighting
+            previous = current_sighting
 
 def save_sighting(sighting: dict):
     data = Path.cwd() / "data"
