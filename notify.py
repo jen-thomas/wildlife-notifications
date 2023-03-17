@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import json
 import re
+import time
+import random
 from typing import Optional
 
 import requests
@@ -64,8 +66,8 @@ def get_scientific_name(sighting: str) -> Optional[str]:
 
 
 def get_raw_sighting():
-    for page in range(0, 100):
-        url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=2&mp_item_per_page=20&mp_current_page={page}"
+    for page_number in range(1, 100):
+        url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
 
         page = requests.get(url)
 
@@ -78,6 +80,8 @@ def get_raw_sighting():
         for location, species in zip(list_locations, list_species):
             species_list = get_species(species)
             yield {"location": location.text, "species": species_list}
+
+        time.sleep(random.randint(1, 5))
 
 def get_next_sighting() -> dict:
     raw_sighting_generator = get_raw_sighting()
