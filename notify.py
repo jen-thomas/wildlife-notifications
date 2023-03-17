@@ -64,7 +64,7 @@ def get_scientific_name(sighting: str) -> Optional[str]:
 
 
 def get_raw_sighting():
-    for page in range(0, 20):
+    for page in range(0, 100):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=2&mp_item_per_page=20&mp_current_page={page}"
 
         page = requests.get(url)
@@ -131,10 +131,6 @@ def print_new_sightings():
     for index, sighting in enumerate(get_next_sighting()):
         if sighting == last_notified:
             # This sighting was already sent - finish
-            return
-
-        if index > 20:
-            # Do not send more than 20...
             return
 
         if index == 0:
