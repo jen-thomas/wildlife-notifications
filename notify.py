@@ -45,14 +45,18 @@ def get_species(observation):
     return species_in_observation
 
 
-def get_comarca_abbr(location: str) -> str:
+def get_comarca_abbr(location: str) -> Optional[str]:
     """Get the comarca from the location name.
 
     Return the comarca abbreviation."""
 
-    comarca_abbr = re.findall("[A-Z]{3}", location)[0]
+    comarca_abbr = re.search(r"\(([A-Z]{3})\)", location)
 
-    return comarca_abbr
+    if comarca_abbr:
+        return comarca_abbr.group(1)
+    else:
+        return None
+
 
 def get_scientific_name(sighting: str) -> Optional[str]:
     scientific_name = re.search(r"\((.*)\)", sighting)
