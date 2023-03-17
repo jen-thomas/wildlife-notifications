@@ -66,12 +66,18 @@ def get_scientific_name(sighting: str) -> Optional[str]:
 
 
 def get_raw_sighting():
-    for page_number in range(1, 100):
+    for page_number in range(1, 150):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
 
         page = requests.get(url)
 
         soup = BeautifulSoup(page.content, "html.parser")
+
+        dates = soup.find_all("div", class_="listTop")
+        if len(dates) == 0:
+            yield None
+
+        date = dates[0].text
 
         list_locations = soup.find_all("div", class_="listSubmenu")
 
@@ -79,7 +85,7 @@ def get_raw_sighting():
 
         for location, species in zip(list_locations, list_species):
             species_list = get_species(species)
-            yield {"location": location.text, "species": species_list}
+            yield {"location": location.text, "species": species_list, "date": date}
 
         time.sleep(random.randint(1, 5))
 
@@ -88,27 +94,30 @@ def get_next_sighting() -> dict:
     previous = next(raw_sighting_generator)
 
     for current_sighting in raw_sighting_generator:
+        if current_sighting is None:
+            break
+
         if previous["location"] == current_sighting["location"]:
             previous["species"] += current_sighting["species"]
         else:
             yield previous
             previous = current_sighting
 
-def save_sighting(sighting: dict):
+def save_sightings(sighting: list[dict]):
     data = Path.cwd() / "data"
     data.mkdir(exist_ok=True)
 
-    file = data / "last_sent.json"
+    file = data / "sent.json"
 
     with file.open("w") as fp:
         json.dump(sighting, fp, indent=2)
 
 
-def load_sighting() -> dict:
-    file = Path.cwd() / "data/last_sent.json"
+def load_sightings() -> list[dict]:
+    file = Path.cwd() / "data/sent.json"
 
     if not file.exists():
-        return {}
+        return []
 
     with file.open("r") as fp:
         return json.load(fp)
@@ -130,19 +139,18 @@ def send_sighting(sighting: dict) -> None:
 
 
 def print_new_sightings():
-    last_notified = load_sighting()
+    sightings_previously_sent = load_sightings()
+
+    all_sightings = []
 
     for index, sighting in enumerate(get_next_sighting()):
-        if sighting == last_notified:
-            # This sighting was already sent - finish
-            return
+        if sighting not in sightings_previously_sent:
+            send_sighting(sighting)
 
-        if index == 0:
-            # Current one is going to be sent, save it to avoid
-            # resending it later
-            save_sighting(sighting)
+        all_sightings.append(sighting)
 
-        send_sighting(sighting)
+    save_sightings(all_sightings)
+
 
 if __name__ == "__main__":
     print_new_sightings()
