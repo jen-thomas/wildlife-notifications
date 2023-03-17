@@ -72,8 +72,8 @@ def get_scientific_name(sighting: str) -> Optional[str]:
 def get_raw_sighting():
     for page_number in range(1, 150):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
-
-        page = requests.get(url)
+        headers = {"User-Agent": "Estem provant un script per tenir unes notificacions, jc@pina.cat"}
+        page = requests.get(url, headers=headers)
 
         soup = BeautifulSoup(page.content, "html.parser")
 
