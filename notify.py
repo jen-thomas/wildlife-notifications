@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import copy
 import json
 import re
 import time
@@ -82,7 +83,7 @@ def debug_request(url: str, page):
     Path(dir / filename).write_text(page_content)
 
 def get_raw_sighting():
-    for page_number in range(1, 150):
+    for page_number in range(50, 150):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
         headers = {"User-Agent": "Estem provant un script per tenir unes notificacions, jc@pina.cat"}
         page = requests.get(url, headers=headers)
@@ -159,6 +160,13 @@ def format_sighting(sighting: dict) -> str:
 def send_sighting(sighting: dict) -> None:
     print(format_sighting(sighting))
 
+def get_sights_for_location_date(location: str, date: str, sightings: list[dict]) -> list[str]:
+    for sighting in sightings:
+        if sighting["location"] == location and sighting["date"] == date:
+            return sighting["species"]
+
+    return []
+
 
 def print_new_sightings():
     sightings_previously_sent = load_sightings()
@@ -166,8 +174,12 @@ def print_new_sightings():
     all_sightings = []
 
     for index, sighting in enumerate(get_next_sighting()):
-        if sighting not in sightings_previously_sent:
-            send_sighting(sighting)
+        past_notifications = get_sights_for_location_date(sighting["location"], sighting["date"], sightings_previously_sent)
+        sighting_to_send = copy.deepcopy(sighting)
+        sighting_to_send["species"] = sorted(set(sighting["species"]) - set(past_notifications))
+
+        if len(sighting_to_send["species"]) > 0:
+            send_sighting(sighting_to_send)
 
         all_sightings.append(sighting)
 
