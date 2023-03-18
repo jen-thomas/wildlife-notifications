@@ -97,6 +97,10 @@ def get_next_sighting() -> dict:
     raw_sighting_generator = get_raw_sighting()
     previous = next(raw_sighting_generator)
 
+    if previous is None:
+        # Early in the morning there isn't the date?
+        return {}
+
     for current_sighting in raw_sighting_generator:
         if current_sighting is None:
             break
