@@ -3,6 +3,7 @@ import json
 import re
 import time
 import random
+from datetime import datetime
 from typing import Optional
 
 import requests
@@ -68,12 +69,25 @@ def get_scientific_name(sighting: str) -> Optional[str]:
     else:
         return None
 
+def debug_request(url: str, page):
+    dir = Path.cwd() / "data/dumps"
+    dir.mkdir(exist_ok=True)
+
+    page_content = url + "\n\n" + page.text
+
+    filename = datetime.now().strftime("%Y%m%d-%H%M%S.%f.html")
+    print("Requested page:", url)
+    print("Dump:", filename)
+
+    Path(dir / filename).write_text(page_content)
 
 def get_raw_sighting():
     for page_number in range(1, 150):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
         headers = {"User-Agent": "Estem provant un script per tenir unes notificacions, jc@pina.cat"}
         page = requests.get(url, headers=headers)
+
+        debug_request(url, page)
 
         soup = BeautifulSoup(page.content, "html.parser")
 
