@@ -83,7 +83,7 @@ def debug_request(url: str, page):
     Path(dir / filename).write_text(page_content)
 
 def get_raw_sighting():
-    for page_number in range(50, 150):
+    for page_number in range(1, 150):
         url = f"https://www.ornitho.cat/index.php?m_id=4&sp_DOffset=1&mp_item_per_page=60&mp_current_page={page_number}"
         headers = {"User-Agent": "Estem provant un script per tenir unes notificacions, jc@pina.cat"}
         page = requests.get(url, headers=headers)
