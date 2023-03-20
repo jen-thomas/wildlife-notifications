@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-import copy
+import functools
 import json
 import re
 import time
 import random
+from collections import namedtuple
 from datetime import datetime
 from typing import Optional
 
@@ -11,6 +12,7 @@ import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 
+@functools.lru_cache(maxsize=None)
 def translate_to_english(scientific_name: str) -> Optional[str]:
     translations_file = Path.cwd() / "data/translations.html"
 
@@ -77,8 +79,8 @@ def debug_request(url: str, page):
     page_content = url + "\n\n" + page.text
 
     filename = datetime.now().strftime("%Y%m%d-%H%M%S.%f.html")
-    print("Requested page:", url)
-    print("Dump:", filename)
+    # print("Requested page:", url)
+    # print("Dump:", filename)
 
     Path(dir / filename).write_text(page_content)
 
@@ -94,7 +96,8 @@ def get_raw_sighting():
 
         dates = soup.find_all("div", class_="listTop")
         if len(dates) == 0:
-            yield None
+            # Finish iterating
+            return
 
         date = dates[0].text
 
@@ -107,6 +110,23 @@ def get_raw_sighting():
             yield {"location": location.text, "species": species_list, "date": date}
 
         time.sleep(random.randint(1, 5))
+
+
+def get_all_sightings() -> dict:
+    raw_sighting_generator = get_raw_sighting()
+
+    sightings = {}
+
+    for sighting in raw_sighting_generator:
+        SightingKey = namedtuple("SightingKey", "location date")
+        key = SightingKey(sighting["location"], sighting["date"])
+
+        if key in sightings:
+            sightings[key] += sighting["species"]
+        else:
+            sightings[key] = sighting["species"]
+
+    return sightings
 
 def get_next_sighting() -> dict:
     raw_sighting_generator = get_raw_sighting()
@@ -171,17 +191,20 @@ def get_sights_for_location_date(location: str, date: str, sightings: list[dict]
 def print_new_sightings():
     sightings_previously_sent = load_sightings()
 
+    all_current_sightings = get_all_sightings()
+
     all_sightings = []
 
-    for index, sighting in enumerate(get_next_sighting()):
-        past_notifications = get_sights_for_location_date(sighting["location"], sighting["date"], sightings_previously_sent)
-        sighting_to_send = copy.deepcopy(sighting)
-        sighting_to_send["species"] = sorted(set(sighting["species"]) - set(past_notifications))
+    for location_date, species in all_current_sightings.items():
+        species_previously_sent_for_location = get_sights_for_location_date(location_date.location, location_date.date, sightings_previously_sent)
 
-        if len(sighting_to_send["species"]) > 0:
-            send_sighting(sighting_to_send)
+        new_species = sorted(set(species) - set(species_previously_sent_for_location))
+        sight_to_send = {"location": location_date.location, "date": location_date.date, "species": new_species}
 
-        all_sightings.append(sighting)
+        if len(new_species) > 0:
+            send_sighting(sight_to_send)
+
+        all_sightings.append({"location": location_date.location, "date": location_date.date, "species": species})
 
     save_sightings(all_sightings)
 
