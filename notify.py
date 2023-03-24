@@ -39,7 +39,11 @@ def get_species(observation):
     species_in_observation = []
 
     for species in observation.children:
-        specie = species.find_all("span", class_="sci_name")[0].parent.text
+        try:
+            specie = species.find_all("span", class_="sci_name")[0].parent.text
+        except IndexError:
+            specie = species.find_all("i")[1].text + " (TODO: this is a strange observation, getting species only?)"
+
         scientific_name = get_scientific_name(specie)
         english_name = translate_to_english(scientific_name)
 
